@@ -1,203 +1,137 @@
-//Required modules
-const ipfsClient = require('ipfs-http-client');
-const express = require('express');
+/** 
+*  / ____/   _____  _______  __/ __ \____ ___  __
+  / __/ | | / / _ \/ ___/ / / / / / / __ `/ / / /
+ / /___ | |/ /  __/ /  / /_/ / /_/ / /_/ / /_/ / 
+/_____/ |___/\___/_/   \__, /_____/\__,_/\__, /  
+                      /____/            /____/   
+    ___              __                ___    ____  ____
+   /   |_   ______ _/ /_____ ______   /   |  / __ \/  _/
+  / /| | | / / __ `/ __/ __ `/ ___/  / /| | / /_/ // /  
+ / ___ | |/ / /_/ / /_/ /_/ / /     / ___ |/ ____// /   
+/_/  |_|___/\__,_/\__/\__,_/_/     /_/  |_/_/   /___/  
+*/
+const ipfsClient = require("ipfs-http-client");
+const express = require("express");
 const app = express();
-const fs = require('fs');
-const axios = require('axios');
-const GM = require('gm');
-const gm = GM.subClass({ imageMagick: true });
-const urlExists = require("url-exists-deep");
-const mergeImages = require('merge-images');
-const { Canvas, Image } = require('node-canvas');
 
-require('dotenv').config()
+const {
+  getComponentUri,
+  mergeGM,
+  mergeAvatar,
+  mergeWithSharp,
+} = require("./helpers/utils.js");
+
+require("dotenv").config();
 app.use(express.json());
 
 //Connecting to the ipfs network via infura gateway
-const auth = 'Basic ' + Buffer.from(process.env.INFURA_PROJECT_ID + ':' + process.env.INFURA_PROJECT_SECRET ).toString('base64')
+const auth =
+  "Basic " +
+  Buffer.from(
+    process.env.INFURA_PROJECT_ID + ":" + process.env.INFURA_PROJECT_SECRET
+  ).toString("base64");
 
 const ipfs = ipfsClient.create(
   {
-  host:'ipfs.infura.io',
-  port: '5001',
-  protocol: 'https',
-  apiPath: '/api/v0',
-  headers: {
-    authorization: auth
+    host: "ipfs.infura.io",
+    port: "5001",
+    protocol: "https",
+    apiPath: "/api/v0",
+    headers: {
+      authorization: auth,
+    },
   }
-}
-// {
-//   host:'127.0.0.1',
-//   port: '5001',
-//   protocol: 'http',
-//   apiPath: '/api/v0',
-// }
-)
+  // {
+  //   host:'127.0.0.1',
+  //   port: '5001',
+  //   protocol: 'http',
+  //   apiPath: '/api/v0',
+  // }
+);
 
-
-app.post("/make-avatar", async (req, res) => {
-
-  const { cid, head, face, clothes } = req.body;
+/**
+ * Make Avatar API
+ *   -expects cid, and components and returns new cid ipfs hash
+ */
+app.get("/make-avatar", async (req, res) => {
+  const { bg, head, face, clothes } = req.query;
 
   // flag between merge-image & imageMagick lib
-  const useGm = req.query.gm ? req.query.gm : 'true';
+  const cid = req.query.cid
+    ? req.query.cid
+    : process.env.COMPONENTS_FOLDER_HASH;
+  const useGm = req.query.gm ? req.query.gm : "false";
+  const useMerge = req.query.m ? req.query.m : "false";
+
+  let response = {
+    jobRunId: "1",
+    statusCode: 400,
+    data: {
+      result: "",
+    },
+  };
 
   if (
     typeof cid !== "undefined" &&
+    typeof bg !== "undefined" &&
     typeof head !== "undefined" &&
     typeof face !== "undefined" &&
     typeof clothes !== "undefined"
   ) {
+    const bImg = await getComponentUri(cid, bg);
     const h = await getComponentUri(cid, head);
     const f = await getComponentUri(cid, face);
     const c = await getComponentUri(cid, clothes);
 
-    
-    if (h && f && c) {
+    if (bImg && h && f && c) {
       try {
         let avatarBuffer = null;
 
-        if(useGm === 'true'){
+        if (useGm === "true") {
           // use gm(imageMagick)
-          avatarBuffer = await mergeGM({h,f,c});
-        }else{
+          avatarBuffer = await mergeGM({ h, f, c });
+        } else if (useMerge === "true") {
           //use merge-images
-          avatarBuffer = await mergeAvatar([h,f,c]);
+          avatarBuffer = await mergeAvatar([h, f, c]);
+        } else {
+          //use Sharp
+          avatarBuffer = await mergeWithSharp({ bImg, h, f, c });
         }
 
-        if(avatarBuffer){
+        if (avatarBuffer) {
           const avName = `avatar-${Date.now()}`;
           const createNewAvatar = await ipfs.add({
-              path: avName,
-              content: avatarBuffer
+            path: avName,
+            content: avatarBuffer,
           });
-          if(createNewAvatar){
-            await ipfs.pin.add(createNewAvatar.cid)
-            return res.status(201).json({
-              status: 'success',
-              name: avName,
-              message: `https://ipfs.io/ipfs/${createNewAvatar.cid}`
-            })
-          }else{
-            return res.status(500).json({
-              status: 'error',
-              message: 'Something went wrong'
-            })
+          
+          if (createNewAvatar) {
+            //pin and add to ipfs
+            await ipfs.pin.add(createNewAvatar.cid);
+            
+            response.statusCode = 200;
+            response.data.result = createNewAvatar.cid.toString();
+            return res.status(200).json(response);
+          } else {
+            response.statusCode = 500;
+            return res.status(500).json(response);
           }
         }
       } catch (err) {
         console.log(err);
-        return res.status(500).json({
-          status: 'error',
-          message: 'Something went wrong'
-        })
+        response.statusCode = 500;
+        return res.status(500).json(response);
       }
-      
-    }else{
-      return res.status(404).json({
-        status: 'failed',
-        message: 'Attribute Not Found'
-      })
+    } else {
+      response.statusCode = 404;
+      return res.status(404).json(response);
     }
   }
 
-  res.status(400).json({
-    status: 'failed',
-    message: 'Bad Request'
-  })
+  response.statusCode = 400;
+  return res.status(400).json(response);
 });
 
-//TEST ROUTE TO PUSH SINGLE FILE TO IPFS
-app.get('/add-file', async(req, res) => {
-  // try {
-  //   let file = fs.readFileSync("./a.png");
-    
-  //   const addedFiles = await ipfs.add({
-  //     path:'glasses2',
-  //     content: file
-  //   });
-  //   const fileHash = addedFiles;
-  //  console.log(fileHash);
-
-  // } catch (error) {
-  //     console.log(error);
-  // }
-});
-
-const downloadTmpImage = async (url, name) => {
-  return new Promise(async (resolve, reject) => {
-    const res = await axios.get(url, { responseType: 'arraybuffer' });
-    if(res.data){
-      fs.writeFileSync(`./tmp/${name}.png`,Buffer.from(res.data, 'binary'));
-      return resolve(true);
-    }
-    return reject(false);
-  });
-};
-
-const removeFile = async (name) => {
-  fs.unlink(`./tmp/${name}.png`, (err) => {
-    if (err) throw err;
-    console.log('deleted');
-  });
-}
-
-const mergeGM = async(attr) => {
-  const {h, f, c} = attr
-  
-  const hair = await downloadTmpImage(h, 'h');
-  const face = await downloadTmpImage(f, 'f');
-  const clothes = await downloadTmpImage(c, 'c');
-  
-  if(hair && face && clothes){
-    return new Promise((resolve, reject) => {
-      gm()
-      .in('-geometry', '+0+0')
-      .in('./tmp/h.png')
-      .in('-geometry', '300x300+100+200')
-      .in('./tmp/c.png')
-      .in('-geometry', '300x300+100+200')
-      .in('./tmp/f.png')
-      .flatten()
-      .toBuffer('png', async (err, buffer) => {
-        if(err){
-          return reject(err)
-        }
-        await removeFile('h');
-        await removeFile('f');
-        await removeFile('c');
-        return resolve(buffer)
-      })
-    });
-  }
-  return false;
-}
-
- const mergeAvatar = async(attributes = []) => {
-  try {
-    if(attributes.length){
-      const image = await mergeImages(attributes, { Canvas: Canvas, Image: Image })
-      return Buffer.from(image.replace(/^data:image\/(png|gif|jpeg);base64,/,''), 'base64');
-    }
-    return false;
-  } catch (error) {
-    console.log(error);
-    return false
-  }
-}
-
-const getComponentUri = async (hash, name) => {
-  try {
-    const uri = `https://ipfs.io/ipfs/${hash}/${name}.png`;
-    //const localUri = `http://bafybeihimrd56uahubq4iibyjm2yayq7jbfwleruyjbzzmq2uwncukwffi.ipfs.localhost:8080/${name}.png`
-    const data = await urlExists(uri);
-    if(typeof data.href !== 'undefined'){
-      return data.href;
-    }
-    return false;
-  } catch (error) {
-    return false;
-  }
-};
-
-app.listen(8000, () => console.log('Server Listening on port 8000!'))
+app.listen(8000, () =>
+  console.log("EveryDay Avatar API Listening on port 8000!")
+);

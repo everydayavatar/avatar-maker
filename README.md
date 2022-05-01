@@ -2,20 +2,8 @@
 
 
 ## Installation
-Install ImageMagick 
 
-https://github.com/aheckmann/gm
-
-
-
-install prerequisites for merge-canvas lib
-
-https://www.npmjs.com/package/canvas   
-
-`OS X	Using Homebrew:
-brew install pkg-config cairo pango libpng jpeg giflib librsvg`
-
-`Ubuntu	sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev`
+https://www.npmjs.com/package/sharp
 
 Install Node Packages
 
@@ -23,8 +11,9 @@ Install Node Packages
 
 .env
 ```
-INFURA_PROJECT_ID=
-INFURA_PROJECT_SECRET=
+INFURA_PROJECT_ID =
+INFURA_PROJECT_SECRET =
+COMPONENTS_FOLDER_HASH = HASH-POINTING_TO_YOUR_COMPONENTS_FOLDER( CAN USE QmRCv9weC5rDqDJioatWXCr8HcfgeG1T4HfmgXs1frQ7LG)
 ```
 
 run the app
@@ -33,36 +22,44 @@ node app.js
 ```
 
  - First i uploded the everday-avatar folder on pinata pinned it to ipfs(i did this manually)
-   https://ipfs.io/ipfs/Qmdyoz3BQH3SphYABMQMSKHLFo9kswtrpuPcxmP7FvY1yK
- - Next i used gm(ImageMagick) to fetch the components from ipfs and overlap the images to create the avatar. For some reason gm was not fetching from https. so i first download the images locally and then pass it to gm(ImageMagick).
- - gm was slow as i download and then delete the files and stuff
- - So i used the merge-images library to create-avatar (https://www.npmjs.com/package/merge-images)
+   https://ipfs.io/ipfs/QmRCv9weC5rDqDJioatWXCr8HcfgeG1T4HfmgXs1frQ7LG
 
 
 ## Demo
 
-`http://127.0.0.1:8000/make-avatar?gm=false`
+` GET http://127.0.0.1:8000/make-avatar?gm=true` ( will create-avatar with gm(ImageMagick) to compose images. )
 
-gm=false will create-avatar with merge-images lib. if gm is not passed it will by default use gm(ImageMagick) to compose images.
+` GET http://127.0.0.1:8000/make-avatar?m=true` ( will create-avatar with merge-images library)
+
+` GET http://127.0.0.1:8000/make-avatar` ( will create-avatar with sharp library)
 
 
 req-body [refer everyday-avatar dir]
+
+bg - background component name
+head - head component name
+face - face component name
+clothes - cloth component name
+
 ```
-{
-    "cid":"Qmdyoz3BQH3SphYABMQMSKHLFo9kswtrpuPcxmP7FvY1yK",
-    "head":"hair",
-    "face":"glasses",
-    "clothes":"jacket"
-}
+GET http://127.0.0.1:8000/make-avatar?bg=bg2&head=santacap&face=glasses&clothes=jacket
 
 ```
 
+``` 
+GET http://127.0.0.1:8000/make-avatar?bg=bg1&head=hair&face=mask&clothes=formals
+
+```
+
+## Response
+
 ```
 {
-    "cid":"Qmdyoz3BQH3SphYABMQMSKHLFo9kswtrpuPcxmP7FvY1yK",
-    "head":"santacap",
-    "face":"mask",
-    "clothes":"formals"
+    "jobRunId": "1",
+    "statusCode": 200,
+    "data": {
+        "result": "QmfYtqtmQMqHumntuA2Ap8X8N9gQPWDfhWm5rjcueFzHp9"
+    }
 }
 
 ```

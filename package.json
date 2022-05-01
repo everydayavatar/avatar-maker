@@ -19,6 +19,7 @@
     "ipfs-http-client": "^52.0.4-rc.4",
     "merge-images": "^2.0.0",
     "node-canvas": "^2.9.0",
+    "sharp": "^0.30.4",
     "url-exists-deep": "^2.1.3"
   }
 }
