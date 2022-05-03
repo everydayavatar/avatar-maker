@@ -16,10 +16,10 @@ const app = express();
 
 const {
   getComponentUri,
-  mergeGM,
-  mergeAvatar,
-  mergeWithSharp,
+  mergeWithSharp
 } = require("./helpers/utils.js");
+
+const components = require("./assets.json");
 
 require("dotenv").config();
 app.use(express.json());
@@ -53,15 +53,17 @@ const ipfs = ipfsClient.create(
  * Make Avatar API
  *   -expects cid, and components and returns new cid ipfs hash
  */
-app.get("/make-avatar", async (req, res) => {
-  const { bg, head, face, clothes } = req.query;
+app.post("/make-avatar", async (req, res) => {
+  const {data} = req.body;
 
-  // flag between merge-image & imageMagick lib
-  const cid = req.query.cid
-    ? req.query.cid
+  const cid = req.body.cid
+    ? req.body.cid
     : process.env.COMPONENTS_FOLDER_HASH;
-  const useGm = req.query.gm ? req.query.gm : "false";
-  const useMerge = req.query.m ? req.query.m : "false";
+   
+  const BACKGROUND = 1;
+  const HEAD = 2;
+  const FACE = 3;
+  const CLOTHES = 4;
 
   let response = {
     jobRunId: "1",
@@ -71,60 +73,67 @@ app.get("/make-avatar", async (req, res) => {
     },
   };
 
-  if (
-    typeof cid !== "undefined" &&
-    typeof bg !== "undefined" &&
-    typeof head !== "undefined" &&
-    typeof face !== "undefined" &&
-    typeof clothes !== "undefined"
-  ) {
-    const bImg = await getComponentUri(cid, bg);
-    const h = await getComponentUri(cid, head);
-    const f = await getComponentUri(cid, face);
-    const c = await getComponentUri(cid, clothes);
+  if(data){
+    if((typeof data.id !== "undefined") && (data.id.length == 16)){
+      const avatarDNA = data.id.match(/.{1,4}/g);
+      if(avatarDNA){
+        const bgDNA = parseInt(avatarDNA[0]);
+        const headDNA = parseInt(avatarDNA[1]);
+        const faceDNA = parseInt(avatarDNA[2]);
+        const clothesDNA = parseInt(avatarDNA[3]);
 
-    if (bImg && h && f && c) {
-      try {
-        let avatarBuffer = null;
 
-        if (useGm === "true") {
-          // use gm(imageMagick)
-          avatarBuffer = await mergeGM({ h, f, c });
-        } else if (useMerge === "true") {
-          //use merge-images
-          avatarBuffer = await mergeAvatar([h, f, c]);
-        } else {
-          //use Sharp
-          avatarBuffer = await mergeWithSharp({ bImg, h, f, c });
-        }
+        let bgHash = getAssetHash(BACKGROUND, bgDNA);
+        let headHash = getAssetHash(HEAD, headDNA);
+        let faceHash = getAssetHash(FACE, faceDNA);
+        let clothesHash = getAssetHash(CLOTHES, clothesDNA);
 
-        if (avatarBuffer) {
-          const avName = `avatar-${Date.now()}`;
-          const createNewAvatar = await ipfs.add({
-            path: avName,
-            content: avatarBuffer,
-          });
-          
-          if (createNewAvatar) {
-            //pin and add to ipfs
-            await ipfs.pin.add(createNewAvatar.cid);
-            
-            response.statusCode = 200;
-            response.data.result = createNewAvatar.cid.toString();
-            return res.status(200).json(response);
-          } else {
-            response.statusCode = 500;
-            return res.status(500).json(response);
+        if(bgHash && headHash && faceHash && clothesHash){
+          const bgImg = await getComponentUri(bgHash.cid);
+          const h = await getComponentUri(headHash.cid);
+          const f = await getComponentUri(faceHash.cid);
+          const c = await getComponentUri(clothesHash.cid); 
+      
+          if (bgImg && h && f && c) {
+            try {
+              let avatarBuffer = await mergeWithSharp({ bgImg, h, f, c });
+      
+              if (avatarBuffer) {
+                const avName = `avatar-${Date.now()}`;
+                const createNewAvatar = await ipfs.add({
+                  path: avName,
+                  content: avatarBuffer,
+                });
+                
+                if (createNewAvatar) {
+                  //pin and add to ipfs
+                  await ipfs.pin.add(createNewAvatar.cid);
+                  
+                  response.statusCode = 200;
+                  response.data.result = createNewAvatar.cid.toString();
+                  return res.status(200).json(response);
+                } else {
+                  response.statusCode = 500;
+                  return res.status(500).json(response);
+                }
+              }
+            } catch (err) {
+              console.log(err);
+              response.statusCode = 500;
+              return res.status(500).json(response);
+            }
+
+          }else {
+            //Asset Not Found
+            response.statusCode = 404;
+            return res.status(404).json(response);
           }
+        }else{
+          //Asset Not Found
+          response.statusCode = 404;
+          return res.status(404).json(response);
         }
-      } catch (err) {
-        console.log(err);
-        response.statusCode = 500;
-        return res.status(500).json(response);
       }
-    } else {
-      response.statusCode = 404;
-      return res.status(404).json(response);
     }
   }
 
@@ -132,6 +141,19 @@ app.get("/make-avatar", async (req, res) => {
   return res.status(400).json(response);
 });
 
-app.listen(8000, () =>
+const getAssetHash = (catId, assetId) => {
+ try {
+  const {assets} = components;
+   if(typeof assets !== "undefined"){
+    return assets.find(asset => ((asset.categoryId == catId) && (asset.assetId == assetId)));
+  }
+  return false;
+ } catch (err) {
+   console.log(err);
+   return false;
+ }
+}
+
+app.listen(process.env.PORT || 8000, () =>
   console.log("EveryDay Avatar API Listening on port 8000!")
 );
