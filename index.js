@@ -49,6 +49,14 @@ const ipfs = ipfsClient.create(
   // }
 );
 
+
+app.get('/', (req, res) => {
+  return res.status(200).json({
+    avatarAPI: 'HEALTHY'
+  })
+});
+
+
 /**
  * Make Avatar API
  *   -expects cid, and components and returns new cid ipfs hash

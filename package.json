@@ -2,9 +2,10 @@
   "name": "avatar-maker",
   "version": "1.0.0",
   "description": "API to generate everyday-avatar",
-  "main": "app.js",
+  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "Hussainz",
@@ -21,5 +22,8 @@
     "node-canvas": "^2.9.0",
     "sharp": "^0.30.4",
     "url-exists-deep": "^2.1.3"
+  },
+  "engines": {
+    "node": "14.x"
   }
 }
