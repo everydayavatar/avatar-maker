@@ -52,7 +52,7 @@ const ipfs = ipfsClient.create(
 
 app.get('/', (req, res) => {
   return res.status(200).json({
-    avatarAPI: 'HEALTHY'
+    avatarAPI: 'HEALTHY...'
   })
 });
 
