@@ -12,14 +12,9 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.26.1",
-    "canvas": "^2.9.1",
     "dotenv": "^16.0.0",
     "express": "^4.17.3",
-    "fs": "0.0.1-security",
-    "gm": "^1.23.1",
     "ipfs-http-client": "^52.0.4-rc.4",
-    "merge-images": "^2.0.0",
-    "node-canvas": "^2.9.0",
     "sharp": "^0.30.4",
     "url-exists-deep": "^2.1.3"
   },
