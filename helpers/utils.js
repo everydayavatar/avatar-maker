@@ -5,6 +5,7 @@ const axios = require('axios');
 const urlExists = require("url-exists-deep");
 // const mergeImages = require('merge-images');
 // const { Canvas, Image } = require('node-canvas');
+const fs = require('fs');
 const sharp = require('sharp');
 
 // const downloadTmpImage = async (url, name) => {
@@ -18,9 +19,10 @@ const sharp = require('sharp');
 //   });
 // };
 
-const getImageBuffer = async (url) => {
+const getImageBuffer = async (hash) => {
   return new Promise(async (resolve, reject) => {
-    const res = await axios.get(url, { responseType: "arraybuffer" });
+    console.log(`https://ipfs.io/ipfs/${hash}`)
+    const res = await axios.get(`https://ipfs.io/ipfs/${hash}`, { responseType: "arraybuffer" });
     if (res.data) {
       return resolve(Buffer.from(res.data, "binary"));
     }
@@ -37,16 +39,43 @@ const getImageBuffer = async (url) => {
 
 module.exports.mergeWithSharp = async (attr) => {
   try {
-    const { bgImg, h, f, c } = attr;
+    const { bgImg, headHash, faceHash, clothesHash } = attr;
+    let inputComposite = undefined;
+    if(typeof bgImg !== "undefined"){
+      //const bgBuffer = await getImageBuffer(bgImg.cid); 
+      const bgBuffer = fs.readFileSync(`./components/${bgImg.assetId}.png`);
+      inputComposite = bgBuffer;
+    }else{
+      //const bgDefault = await getImageBuffer('QmVGwYY7p9CFAMKNmeBGb5VC8SNKe5hfQmTccmCswGf5Nr');
+      const bgDefault = fs.readFileSync(`./components/56.png`);
 
-    const bgBuffer = await getImageBuffer(bgImg);
-    const hBuffer = await getImageBuffer(h);
-    const fBuffer = await getImageBuffer(f);
-    const cBuffer = await getImageBuffer(c);
+      inputComposite = bgDefault;
+    }
 
-    if (bgBuffer && hBuffer && fBuffer && cBuffer) {
-      const avatarBuffer = await sharp(bgBuffer)
-        .composite([{ input: hBuffer }, { input: cBuffer }, { input: fBuffer } ])
+    
+    let avatarMerge = [];
+    if(typeof headHash !== "undefined"){
+      //const hBuffer = await getImageBuffer(headHash.cid);
+      const hBuffer = fs.readFileSync(`./components/${headHash.assetId}.png`);
+      avatarMerge.push({ input: hBuffer });
+    }
+
+    if(typeof clothesHash !== "undefined"){
+      //const cBuffer = await getImageBuffer(clothesHash.cid);
+      const cBuffer = fs.readFileSync(`./components/${clothesHash.assetId}.png`);
+      avatarMerge.push({ input: cBuffer });
+    }
+
+    if(typeof faceHash !== "undefined"){
+      //const fBuffer = await getImageBuffer(faceHash.cid);
+      const fBuffer = fs.readFileSync(`./components/${faceHash.assetId}.png`);
+      avatarMerge.push({ input: fBuffer });
+    }
+    
+
+    if (avatarMerge.length) {
+      const avatarBuffer = await sharp(inputComposite)
+        .composite(avatarMerge)
         .toBuffer();
       return avatarBuffer;
     }

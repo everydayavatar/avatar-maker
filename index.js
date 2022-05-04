@@ -12,6 +12,10 @@
 */
 const ipfsClient = require("ipfs-http-client");
 const express = require("express");
+const Hash = require('ipfs-only-hash')
+const NodeCache = require( "node-cache" );
+const nodeCache = new NodeCache();
+
 const app = express();
 
 const {
@@ -96,27 +100,33 @@ app.post("/make-avatar", async (req, res) => {
         let faceHash = getAssetHash(FACE, faceDNA);
         let clothesHash = getAssetHash(CLOTHES, clothesDNA);
 
-        if(bgHash && headHash && faceHash && clothesHash){
-          const bgImg = await getComponentUri(bgHash.cid);
-          const h = await getComponentUri(headHash.cid);
-          const f = await getComponentUri(faceHash.cid);
-          const c = await getComponentUri(clothesHash.cid); 
-      
-          if (bgImg && h && f && c) {
             try {
-              let avatarBuffer = await mergeWithSharp({ bgImg, h, f, c });
-      
+            
+              let avatarBuffer = await mergeWithSharp({ bgHash, headHash, faceHash, clothesHash });
+              
               if (avatarBuffer) {
+                const calculatedHash = await Hash.of(avatarBuffer)
+
+                const cids = await nodeCache.get(calculatedHash);
+                if(typeof cids !== "undefined"){
+                  console.log('already exists returning calculated hash....')
+                  response.statusCode = 200;
+                  response.data.result = calculatedHash.toString();
+                  return res.status(200).json(response);
+                }
+
                 const avName = `avatar-${Date.now()}`;
                 const createNewAvatar = await ipfs.add({
                   path: avName,
                   content: avatarBuffer,
                 });
-                
+
                 if (createNewAvatar) {
                   //pin and add to ipfs
                   await ipfs.pin.add(createNewAvatar.cid);
                   
+                  nodeCache.set(createNewAvatar.cid.toString(),"true", 864000);
+
                   response.statusCode = 200;
                   response.data.result = createNewAvatar.cid.toString();
                   return res.status(200).json(response);
@@ -130,17 +140,6 @@ app.post("/make-avatar", async (req, res) => {
               response.statusCode = 500;
               return res.status(500).json(response);
             }
-
-          }else {
-            //Asset Not Found
-            response.statusCode = 404;
-            return res.status(404).json(response);
-          }
-        }else{
-          //Asset Not Found
-          response.statusCode = 404;
-          return res.status(404).json(response);
-        }
       }
     }
   }
