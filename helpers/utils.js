@@ -39,16 +39,16 @@ const getImageBuffer = async (hash) => {
 
 module.exports.mergeWithSharp = async (attr) => {
   try {
-    const { bgImg, headHash, faceHash, clothesHash } = attr;
+    const { bgHash, headHash, faceHash, clothesHash } = attr;
     let inputComposite = undefined;
-    if(typeof bgImg !== "undefined"){
-      //const bgBuffer = await getImageBuffer(bgImg.cid); 
-      const bgBuffer = fs.readFileSync(`./components/${bgImg.assetId}.png`);
+    if(typeof bgHash !== "undefined"){
+      //const bgBuffer = await getImageBuffer(bgHash.cid); 
+      const bgBuffer = fs.readFileSync(`./components/${bgHash.assetId}.png`);
       inputComposite = bgBuffer;
     }else{
       //const bgDefault = await getImageBuffer('QmVGwYY7p9CFAMKNmeBGb5VC8SNKe5hfQmTccmCswGf5Nr');
       const bgDefault = fs.readFileSync(`./components/56.png`);
-
+      
       inputComposite = bgDefault;
     }
 

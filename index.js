@@ -61,6 +61,55 @@ app.get('/', (req, res) => {
 });
 
 
+/** 
+ * View Avatar API 
+ * returns base64 Image for valid attributeIds
+*/
+app.get('/view-avatar/:attributeIds', async(req, res) => {
+   const {attributeIds} = req.params;
+   if((typeof attributeIds !== "undefined") && (attributeIds.length == 16)){
+    const avatarDNA = attributeIds.match(/.{1,4}/g);
+    if(avatarDNA){
+
+        const BACKGROUND = 1;
+        const HEAD = 2;
+        const FACE = 3;
+        const CLOTHES = 4;
+
+        const bgDNA = parseInt(avatarDNA[0]);
+        const headDNA = parseInt(avatarDNA[1]);
+        const faceDNA = parseInt(avatarDNA[2]);
+        const clothesDNA = parseInt(avatarDNA[3]);
+
+        let bgHash = getAssetHash(BACKGROUND, bgDNA);
+        let headHash = getAssetHash(HEAD, headDNA);
+        let faceHash = getAssetHash(FACE, faceDNA);
+        let clothesHash = getAssetHash(CLOTHES, clothesDNA);
+
+        try {
+            
+          let avatarBuffer = await mergeWithSharp({ bgHash, headHash, faceHash, clothesHash });
+          
+          if (avatarBuffer) {
+            //const avatar =  `data:image/png;base64,${avatarBuffer.toString('base64')}`
+            res.writeHead(200, {
+              'Content-Type': 'image/png',
+              'Content-Length': avatarBuffer.length
+            });
+            return res.end(avatarBuffer); 
+
+          }
+        } catch (err) {
+          console.log(err);
+          return res.status(500).send('Something went wrong');
+        }
+    }
+  }
+
+  return res.status(400).send('Bad Request');
+});
+
+
 /**
  * Make Avatar API
  *   -expects cid, and components and returns new cid ipfs hash
