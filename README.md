@@ -2,7 +2,7 @@
 
 Everyday Avatar is an NFT profile picture project, inspired by paper doll toys. Just like real paper dolls, this dynamic NFT project lets you swap out what your Avatar is wearing or how it looks, whenever you want.
 
-**Avatar Maker** is the backend component for our dApp, see the Everyday Avatar react front end and Solidity contracts here.
+**Avatar Maker** is the backend component for our dApp, see 
 [the Everyday Avatar react front end and Solidity contracts here.](https://github.com/Hussainzz/everyday-avatar)
 
 ## Avatar Maker
