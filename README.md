@@ -11,8 +11,11 @@ This is a node.js web service that dynamically builds Everyday Avatar images fro
 ### Endpoints Supported
 `POST /make-avatar`  Dynamically builds the Avatar image, and uploads it to IPFS via infura and returns the IPFS CID.
 
-`GET/update-view`  Dynamically builds the Avatar image, and returns the image via http. 
+`GET /view-avatar/${componentIDs}`  Dynamically builds the Avatar image, and returns the image via http. 
 
+**Note:** Each component belongs to an asset category, and there is a total of four categories. Each category is represented by a 4-digit number, and each category is concatinated together to make the 16-digit componentID. (The componentID is called a token's DNA in other projects, FYI.)
+
+`0000` has special meaning, that there is no component for the asset category.
 
 ## Installation
 
@@ -24,9 +27,9 @@ Install Node Packages
 
 .env
 ```
-INFURA_PROJECT_ID =
+INFURA_PROJECT_ID = 
 INFURA_PROJECT_SECRET =
-COMPONENTS_FOLDER_HASH = HASH-POINTING_TO_YOUR_COMPONENTS_FOLDER( CAN USE QmRCv9weC5rDqDJioatWXCr8HcfgeG1T4HfmgXs1frQ7LG)
+COMPONENTS_FOLDER_HASH = HASH-POINTING_TO_YOUR_COMPONENTS_FOLDER(ie QmRCv9weC5rDqDJioatWXCr8HcfgeG1T4HfmgXs1frQ7LG)
 ```
 
 run the app
@@ -34,38 +37,18 @@ run the app
 node app.js
 ```
 
- - First i uploded the everday-avatar folder on pinata pinned it to ipfs(i did this manually)
-   https://ipfs.io/ipfs/QmRCv9weC5rDqDJioatWXCr8HcfgeG1T4HfmgXs1frQ7LG
+ - Upload COMPONETS_FOLDER_HASH to IPFS and pin it (i did this manually using pinata.cloud)
+   example: https://ipfs.io/ipfs/QmRCv9weC5rDqDJioatWXCr8HcfgeG1T4HfmgXs1frQ7LG
 
 
-## Demo
+## Usage
+### /make-avatar
+` POST http://127.0.0.1:8000/make-avatar` ( will create avatar and pin to IPFS )
 
-` GET http://127.0.0.1:8000/make-avatar?gm=true` ( will create-avatar with gm(ImageMagick) to compose images. )
+Using CURL:
+`curl -X POST -H "content-type:application/json" -d '{ "data": { "id": "0033001200250005", "result": "0" }}' https://127.0.0.1:8000/make-avatar`
 
-` GET http://127.0.0.1:8000/make-avatar?m=true` ( will create-avatar with merge-images library)
-
-` GET http://127.0.0.1:8000/make-avatar` ( will create-avatar with sharp library)
-
-
-req-body [refer everyday-avatar dir]
-
-bg - background component name
-head - head component name
-face - face component name
-clothes - cloth component name
-
-```
-GET http://127.0.0.1:8000/make-avatar?bg=bg2&head=santacap&face=glasses&clothes=jacket
-
-```
-
-``` 
-GET http://127.0.0.1:8000/make-avatar?bg=bg1&head=hair&face=mask&clothes=formals
-
-```
-
-## Response
-
+#### Response
 ```
 {
     "jobRunId": "1",
@@ -74,5 +57,23 @@ GET http://127.0.0.1:8000/make-avatar?bg=bg1&head=hair&face=mask&clothes=formals
         "result": "QmfYtqtmQMqHumntuA2Ap8X8N9gQPWDfhWm5rjcueFzHp9"
     }
 }
-
 ```
+
+### /view-avatar
+` GET http://127.0.0.1:8000/view-avatar` ( will create avatar return it )
+
+Using CURL:
+`curl -X GET https://127.0.0.1:8000/view-avatar/0054001100280005`
+
+#### Response
+`Content-Type: image/png`
+(raw PNG image)
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+
+## License
+
+[MIT]([https://choosealicense.com/licenses/mit/](https://choosealicense.com/licenses/mit/))
