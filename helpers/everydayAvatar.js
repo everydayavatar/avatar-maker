@@ -22,6 +22,27 @@ module.exports.checkTokenOwner = async (tokenId, address) => {
     return false;
 }
 
+module.exports.checkIfIpfs = async (tokenId) => { 
+    try {
+        const tokenUri = await contract.tokenURI(tokenId);
+        if(tokenUri){
+            let tokenJson = Buffer.from(
+                tokenUri.replace("data:application/json;base64,", ""),
+                "base64"
+              ).toString();
+            if (tokenJson) {
+                tokenJson = JSON.parse(tokenJson);
+            }
+            if(tokenJson.image && tokenJson.image.includes('ipfs')){
+                return true;
+            }
+        }
+    } catch (error) {
+        console.error(error);
+    }
+    return false;
+}
+
 module.exports.updateCID = async(tokenId, hash)=>{
     try {
         //const gas = await contract.estimateGas.updateToIPFS(tokenId, hash);

@@ -26,6 +26,7 @@ const {
 } = require("./helpers/utils.js");
 
 const {
+  checkIfIpfs,
   updateCID
 } = require("./helpers/everydayAvatar.js")
 
@@ -133,14 +134,19 @@ app.get('/view-avatar/:attributeIds', async(req, res) => {
       if(isIPFS.cid(hash)){
         //const isTokenOwner = await checkTokenOwner(token, owner);
         try {
-          const update = await updateCID(token, hash);
-          if(update){
-            httpCode = 200
-            response.success = true;
-            response.h = update
-            response.msg = "success";
-          }
+          const isIpfs = await checkIfIpfs(token);
           
+          if(!isIpfs){
+            const update = await updateCID(token, hash);
+            if(update){
+              httpCode = 200
+              response.success = true;
+              response.h = update
+              response.msg = "success";
+            }
+          }else{
+            response.msg = "already_ipfs"
+          }
         } catch (error) {
           console.log(error);
         }
