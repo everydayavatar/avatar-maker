@@ -13,15 +13,19 @@
 const ipfsClient = require("ipfs-http-client");
 const express = require("express");
 const Hash = require('ipfs-only-hash')
+const isIPFS = require('is-ipfs')
 const NodeCache = require( "node-cache" );
 const nodeCache = new NodeCache();
 
 const app = express();
 
 const {
-  getComponentUri,
   mergeWithSharp
 } = require("./helpers/utils.js");
+
+const {
+  updateCID
+} = require("./helpers/everydayAvatar.js")
 
 const components = require("./assets.json");
 
@@ -91,7 +95,7 @@ app.get('/view-avatar/:attributeIds', async(req, res) => {
           let avatarBuffer = await mergeWithSharp({ bgHash, headHash, faceHash, clothesHash });
           
           if (avatarBuffer) {
-            //const avatar =  `data:image/png;base64,${avatarBuffer.toString('base64')}`
+             //const avatar =  `data:image/png;base64,${avatarBuffer.toString('base64')}`
             res.writeHead(200, {
               'Content-Type': 'image/png',
               'Content-Length': avatarBuffer.length
@@ -111,12 +115,48 @@ app.get('/view-avatar/:attributeIds', async(req, res) => {
 
 
 /**
+ * Updates CID Hash on Chain
+ *   -expects tokenId, hash, owner & returns txn hash and bool
+ */
+ app.post("/update-avatar-ipfs", async (req, res) => {
+    const {token, hash, owner} = req.body;
+    let httpCode = 500;
+    let response = {
+      success:false,
+      msg: "error"
+    }
+    if((typeof token !== "undefined") && (typeof hash !== "undefined") && (typeof owner !== "undefined")){
+      if(isIPFS.cid(hash)){
+        //const isTokenOwner = await checkTokenOwner(token, owner);
+        try {
+          const update = await updateCID(token, hash);
+          if(update){
+            httpCode = 200
+            response.success = true;
+            response.h = update
+            response.msg = "success";
+          }
+          
+        } catch (error) {
+          console.log(error);
+        }
+        
+      }else{
+        httpCode = 400
+        response.msg = "invalid cid hash passed";
+      }
+    }
+    res.status(httpCode).json(response);
+ });
+
+
+/**
  * Make Avatar API
  *   -expects cid, and components and returns new cid ipfs hash
  */
 app.post("/make-avatar", async (req, res) => {
   const {data} = req.body;
-
+  
   const cid = req.body.cid
     ? req.body.cid
     : process.env.COMPONENTS_FOLDER_HASH;
