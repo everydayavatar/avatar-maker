@@ -14,6 +14,8 @@ const ipfsClient = require("ipfs-http-client");
 const express = require("express");
 const Hash = require('ipfs-only-hash')
 const isIPFS = require('is-ipfs')
+const cors = require('cors')
+
 const NodeCache = require( "node-cache" );
 const nodeCache = new NodeCache();
 
@@ -28,6 +30,8 @@ const {
 } = require("./helpers/everydayAvatar.js")
 
 const components = require("./assets.json");
+
+app.use(cors())
 
 require("dotenv").config();
 app.use(express.json());
