@@ -144,6 +144,7 @@ app.get('/view-avatar/:attributeIds', async(req, res) => {
               response.h = update
               response.msg = "success";
               //set txn hash for tokenId in cache [expires in 20min]
+              console.log(`token-${token} setting cache for hash ${update}`);
               nodeCache.set(`token-${token}`,update, 1800);
             }
           }else{
@@ -191,6 +192,8 @@ app.post("/make-avatar", async (req, res) => {
   if(pin){
     const tokenKey = `token-${data.tokenId}`
     const tokenTxn = await nodeCache.get(tokenKey);
+    console.log(tokenKey);
+    console.log(tokenTxn);
     if(typeof tokenTxn !== "undefined"){
       response.statusCode = 200;
       response.data.msg = "ipfs_inProgress";
