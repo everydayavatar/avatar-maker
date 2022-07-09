@@ -169,7 +169,7 @@ app.get('/view-avatar/:attributeIds', async(req, res) => {
  */
 app.post("/make-avatar", async (req, res) => {
   const {data} = req.body;
-  const {ipfs} = req.query;
+  const {pin} = req.query;
   const cid = req.body.cid
     ? req.body.cid
     : process.env.COMPONENTS_FOLDER_HASH;
@@ -188,7 +188,7 @@ app.post("/make-avatar", async (req, res) => {
     },
   };
 
-  if(ipfs){
+  if(pin){
     const tokenKey = `token-${data.tokenId}`
     const tokenTxn = await nodeCache.get(tokenKey);
     if(typeof tokenTxn !== "undefined"){
