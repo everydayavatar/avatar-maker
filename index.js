@@ -143,8 +143,11 @@ app.get('/view-avatar/:attributeIds', async(req, res) => {
               response.success = true;
               response.h = update
               response.msg = "success";
+              //set txn hash for tokenId in cache [expires in 20min]
+              nodeCache.set(token,h, 1800);
             }
           }else{
+            httpCode = 200;
             response.msg = "already_ipfs"
           }
         } catch (error) {
@@ -166,7 +169,7 @@ app.get('/view-avatar/:attributeIds', async(req, res) => {
  */
 app.post("/make-avatar", async (req, res) => {
   const {data} = req.body;
-  
+  const {ipfs} = req.query;
   const cid = req.body.cid
     ? req.body.cid
     : process.env.COMPONENTS_FOLDER_HASH;
@@ -183,6 +186,16 @@ app.post("/make-avatar", async (req, res) => {
       result: "",
     },
   };
+
+  if(ipfs){
+    const tokenTxn = await nodeCache.get(data.tokenId);
+    if(typeof tokenTxn !== "undefined"){
+      response.statusCode = 200;
+      response.data.result = `IPFS Txn:${tokenTxn} Already in progress`
+      return res.status(response.statusCode).json(response);
+    }
+  }
+  
 
   if(data){
     if((typeof data.id !== "undefined") && (data.id.length == 16)){
@@ -224,7 +237,7 @@ app.post("/make-avatar", async (req, res) => {
                   //pin and add to ipfs
                   await ipfs.pin.add(createNewAvatar.cid);
                   
-                  nodeCache.set(createNewAvatar.cid.toString(),"true", 864000);
+                  nodeCache.set(createNewAvatar.cid.toString(),"true", 180000);
 
                   response.statusCode = 200;
                   response.data.result = createNewAvatar.cid.toString();
@@ -243,8 +256,7 @@ app.post("/make-avatar", async (req, res) => {
     }
   }
 
-  response.statusCode = 400;
-  return res.status(400).json(response);
+  return res.status(response.statusCode).json(response);
 });
 
 const getAssetHash = (catId, assetId) => {
