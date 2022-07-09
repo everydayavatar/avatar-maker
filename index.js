@@ -184,6 +184,7 @@ app.post("/make-avatar", async (req, res) => {
     statusCode: 400,
     data: {
       result: "",
+      msg: ""
     },
   };
 
@@ -191,6 +192,7 @@ app.post("/make-avatar", async (req, res) => {
     const tokenTxn = await nodeCache.get(data.tokenId);
     if(typeof tokenTxn !== "undefined"){
       response.statusCode = 200;
+      response.data.msg = "ipfs_inProgress";
       response.data.result = `IPFS Txn:${tokenTxn} Already in progress`
       return res.status(response.statusCode).json(response);
     }
