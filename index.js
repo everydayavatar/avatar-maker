@@ -143,9 +143,9 @@ app.get('/view-avatar/:attributeIds', async(req, res) => {
               response.success = true;
               response.h = update
               response.msg = "success";
-              //set txn hash for tokenId in cache [expires in 20min]
+              //set txn hash for tokenId in cache [expires in 10min]
               console.log(`token-${token} setting cache for hash ${update}`);
-              nodeCache.set(`token-${token}`,update, 1800);
+              nodeCache.set(`token-${token}`,update, 600);
             }
           }else{
             httpCode = 200;
